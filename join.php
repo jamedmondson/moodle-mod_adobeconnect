@@ -1,13 +1,13 @@
 <?php // $Id: join.php,v 1.1.2.10 2011/04/05 15:27:02 adelamarre Exp $
 
 /**
- * This page prints a particular instance of adobeconnect
+ * This page assigns roles on the Adobe Connect Server as required
+ * before redirecting the user to the correct meeting URL
  *
  * @author  Your Name <adelamarre@remote-learner.net>
- * @version $Id: view.php,v 1.1.2.13 2011/05/09 21:41:28 adelamarre Exp $
+ * @version $Id: join.php,v 1.1.2.10 2011/04/05 15:27:02 adelamarre Exp $
  * @package mod/adobeconnect
  */
-
 
 require_once(dirname(dirname(dirname(__FILE__))).'/config.php');
 require_once(dirname(__FILE__).'/locallib.php');
@@ -42,51 +42,51 @@ if (isset($CFG->adobeconnect_email_login) and !empty($CFG->adobeconnect_email_lo
     $usrobj->username = $usrobj->email;
 }
 
-if (0 != $cm->groupmode){
+$usrcanjoin = false; //Check group affiliation
+$limitedaccess = false; //track whether should be entering as a guest despite what role might be held in parent contexts
 
-    if (empty($groupid)) {
-        $groups = groups_get_user_groups($course->id, $usrobj->id);
+// groupings are ignored when not enabled
+if (empty($CFG->enablegroupings)) {
+    $cm->groupingid = 0;
+}
 
-        if (array_key_exists(0, $groups)) {
-            $groupid = current($groups[0]);
-        }
+//All groups for this grouping in course
+//mimic return format of groups_get_user_groups()
+$crsgroups = groups_get_all_groups($course->id, 0, $cm->groupingid);
+$crsgroups[$cm->groupingid] = array_keys($crsgroups);
 
-        if (empty($groupid)) {
-            $groupid = 0;
-            notify(get_string('usergrouprequired', 'adobeconnect'));
-            print_footer($course);
-            die();
-        }
-
-    }
+//group(s) to display meeting(s) for
+$groups = array();
+//group(s) user is enrolled in
+$context = get_context_instance(CONTEXT_MODULE, $id);
+if ($cm->groupmode == NOGROUPS) {
+    $allowedgroups = array();
+} elseif (has_capability('moodle/site:accessallgroups', $context)) {
+    $allowedgroups =  $crsgroups;
 } else {
-    $groupid = 0;
-}
-
-$usrcanjoin = false;
-
-$usrgroups = groups_get_user_groups($cm->course, $usrobj->id);
-$usrgroups = $usrgroups[0]; // Just want groups and not groupings
-
-// If separate groups is enabled, check if the user is a part of the selected group
-if (0 != $cm->groupmode/*$adobeconnect->meetingpublic*/) {
-    if (false !== array_search($groupid, $usrgroups)) {
-        $usrcanjoin = true;
+    $allowedgroups = groups_get_user_groups($course->id, $USER->id);
+    if (empty($allowedgroups) || !isset($allowedgroups[$cm->groupingid]) || empty($allowedgroups[$cm->groupingid])) {
+        notice(get_string('usergrouprequired', 'adobeconnect'));
     }
 }
 
-$context = get_context_instance(CONTEXT_COURSE, $cm->course);
-
-// Make sure the user has a role in the course
-$crsroles = get_roles_used_in_context($context);
-
-if (empty($crsroles)) {
-    $crsroles = array();
-}
-
-foreach ($crsroles as $roleid => $crsrole) {
-    if (user_has_role_assignment($usrobj->id, $roleid, $context->id)) {
+$context = get_context_instance(CONTEXT_MODULE, $id);
+if ($cm->groupmode == NOGROUPS) {
+    $usrcanjoin = true;
+} elseif (has_capability('moodle/site:accessallgroups', $context)) {
+    $usrcanjoin = true;
+} elseif (in_array($groupid, $allowedgroups[$cm->groupingid])) {
+    $usrcanjoin = true;
+} elseif ($adobeconnect->meetingpublic) {
+    if ($cm->groupmode == VISIBLEGROUPS) {
+        //Groups more important than role/private/public.
+        //This is the equivalent of joining with guest access via URL
         $usrcanjoin = true;
+        $limitedaccess = true;
+    } else {
+        // SEPARATEGROUPS. Only access via URL because the button
+        // to here will never display due to the way Moodle
+        // handles groups & the groups menu
     }
 }
 
@@ -118,6 +118,7 @@ if ($usrcanjoin and confirm_sesskey($sesskey)) {
             print_object("error creating user");
             print_object($aconnect->_xmlresponse);
             $validuser = false;
+            debugging("error creating user", DEBUG_DEVELOPER);
         }
 
     }
@@ -126,49 +127,33 @@ if ($usrcanjoin and confirm_sesskey($sesskey)) {
 
     // Check the user's capabilities and assign them the Adobe Role
     if (!empty($meetingscoid) and !empty($usrprincipal) and !empty($meeting)) {
-        if (has_capability('mod/adobeconnect:meetinghost', $context, $usrobj->id, false)) {
-            if (aconnect_check_user_perm($aconnect, $usrprincipal, $meetingscoid, ADOBE_HOST, true)) {
-                //DEBUG
-//                 echo 'host';
-//                 die();
-            } else {
-                //DEBUG
-                print_object('error assign user adobe host role');
-                print_object($aconnect->_xmlrequest);
-                print_object($aconnect->_xmlresponse);
+    $context = get_context_instance(CONTEXT_MODULE, $id);        
+    if (has_capability('mod/adobeconnect:meetinghost', $context) && !$limitedaccess) {
+            if (!aconnect_check_user_perm($aconnect, $usrprincipal, $meetingscoid, ADOBE_HOST, true)) {
                 $validuser = false;
+                debugging('error assigning user adobe host role',  DEBUG_DEVELOPER);
             }
-        } elseif (has_capability('mod/adobeconnect:meetingpresenter', $context, $usrobj->id, false)) {
-            if (aconnect_check_user_perm($aconnect, $usrprincipal, $meetingscoid, ADOBE_PRESENTER, true)) {
-                //DEBUG
-//                 echo 'presenter';
-//                 die();
-            } else {
-                //DEBUG
-                print_object('error assign user adobe presenter role');
-                print_object($aconnect->_xmlrequest);
-                print_object($aconnect->_xmlresponse);
+        } elseif (has_capability('mod/adobeconnect:meetingpresenter', $context) && !$limitedaccess) {
+            if (!aconnect_check_user_perm($aconnect, $usrprincipal, $meetingscoid, ADOBE_PRESENTER, true)) {
                 $validuser = false;
+                debugging('error assigning user adobe presenter role', DEBUG_DEVELOPER);
             }
-        } elseif (has_capability('mod/adobeconnect:meetingparticipant', $context, $usrobj->id, false)) {
-            if (aconnect_check_user_perm($aconnect, $usrprincipal, $meetingscoid, ADOBE_PARTICIPANT, true)) {
-                //DEBUG
-//                 echo 'participant';
-//                 die();
-            } else {
-                //DEBUG
-                print_object('error assign user adobe particpant role');
-                print_object($aconnect->_xmlrequest);
-                print_object($aconnect->_xmlresponse);
+        } elseif (has_capability('mod/adobeconnect:meetingparticipant', $context) && !$limitedaccess) {
+            if (!aconnect_check_user_perm($aconnect, $usrprincipal, $meetingscoid, ADOBE_PARTICIPANT, true)) {
                 $validuser = false;
+                debugging('error assigning user adobe participant role', DEBUG_DEVELOPER);
             }
         } else {
             // Check if meeting is public and allow them to join
             if ($adobeconnect->meetingpublic) {
                 // if for a public meeting the user does not not have either of presenter or participant capabilities then give
                 // the user the participant role for the meeting
-                aconnect_check_user_perm($aconnect, $usrprincipal, $meetingscoid, ADOBE_PARTICIPANT, true);
-                $validuser = true;
+                if (aconnect_check_user_perm($aconnect, $usrprincipal, $meetingscoid, ADOBE_PARTICIPANT, true)) {
+                    $validuser = true;
+                } else {
+                    print_object('error assign user adobe particpant role (guest access to public meeting)');
+                    $validuser = false;
+                }
             } else {
                 $validuser = false;
             }

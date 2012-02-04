@@ -87,20 +87,7 @@ function adobeconnect_add_instance($adobeconnect) {
         $rollback = array();
 
         // Create the meeting for each group
-        foreach($crsgroups as $crsgroup) {
-
-            // The teacher role if they don't already have one and
-            // Assign them to each group
-            if (!groups_is_member($crsgroup->id, $USER->id)) {
-                $roleid = get_field('role', 'id', 'shortname', 'editingteacher');
-
-                if (!user_has_role_assignment($USER->id, $roleid, $context->id)) {
-                    role_assign($roleid, $USER->id, 0, $context->id);
-                }
-
-                groups_add_member($crsgroup->id, $USER->id);
-
-            }
+        foreach ($crsgroups as $crsgroup) {
 
             $meeting->name = $adobeconnect->name . '_' . $crsgroup->name;
 
