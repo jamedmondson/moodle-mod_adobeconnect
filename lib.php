@@ -161,10 +161,8 @@ function adobeconnect_add_instance($adobeconnect) {
     } else { // no groups support
         if (!$meetingscoid = aconnect_create_meeting($aconnect, $meeting, $meetfldscoid)) {
             debugging('There was an error creating the meeting "'.$meeting->name.'" on the Adobe Connect Server.', DEBUG_DEVELOPER);
-            //delete all local records for this meeting (or meetings if in group mode)
-            $result = delete_records('adobeconnect', 'id', $recid);
-            $result2 = delete_records('adobeconnect_meeting_groups', 'instanceid', $recid);
-            if (!$result || !$result2) {
+            //delete local record of this meeting
+            if (!delete_records('adobeconnect', 'id', $recid)) {
                 debugging('There was a problem deleting Moodle\'s record of the meeting "'.$meeting->name.'" (which was not created on the AdobeConnect server).', DEBUG_DEVELOPER);
             }
             return false;
