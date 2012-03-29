@@ -6,6 +6,11 @@
 
         $status = true;
 
+        //only restore if user data selected.
+        if (!restore_userdata_selected($restore,'adobeconnect',$mod->id)) {
+            return $status;
+        }
+
         //Get record from backup_ids
         $data = backup_getid($restore->backup_unique_code,$mod->modtype,$mod->id);
 
