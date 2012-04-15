@@ -165,3 +165,4 @@ $string['longurl'] = 'That meeting URL is too long. Try shortening it';
 $string['errorrecording'] = 'Unable to find recording session';
 $string['meetinfo'] = 'More Meeting Detail';
 $string['meetinfotxt'] = 'See server meeting details';
+$string['invalidgroupmode'] = 'Your course (or selected grouping) has no groups. Please configure groups or select \'No groups\'.';
