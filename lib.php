@@ -115,7 +115,7 @@ function adobeconnect_add_instance($adobeconnect) {
     if (0 != $adobeconnect->groupmode) { // Allow for multiple groups
 
         // get all groups for the course
-        $crsgroups = groups_get_all_groups($COURSE->id);
+        $crsgroups = groups_get_all_groups($COURSE->id, 0, $adobeconnect->groupingid);
 
         if (empty($crsgroups)) {
             return 0;
