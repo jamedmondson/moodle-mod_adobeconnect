@@ -390,8 +390,6 @@ function adobeconnect_update_instance($adobeconnect) {
  */
 function adobeconnect_delete_instance($id) {
 
-    global $CFG;
-
     if (! $adobeconnect = get_record('adobeconnect', 'id', $id)) {
         return false;
     }
@@ -413,9 +411,7 @@ function adobeconnect_delete_instance($id) {
             }
 
             //only delete from server if no other pointers to this meeting
-            $numpointers = count_records_sql('SELECT COUNT(*)
-                                        FROM '.$CFG->prefix.'adobeconnect_meeting_groups
-                                        WHERE meetingscoid = "'.$meeting->meetingscoid.'"');
+            $numpointers = count_records('adobeconnect_meeting_groups', 'meetingscoid', $meeting->meetingscoid);
             if ($numpointers == 1) {
                 aconnect_remove_meeting($aconnect, $meeting->meetingscoid);
             }
