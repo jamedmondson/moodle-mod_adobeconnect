@@ -34,11 +34,12 @@ class restore_adobeconnect_activity_structure_step extends restore_activity_stru
     protected function define_structure() {
 
         $paths = array();
-        $userinfo = false;
-//        $userinfo = $this->get_setting_value('userinfo');
+        $userinfo = $this->get_setting_value('userinfo');
 
-        $paths[] = new restore_path_element('adobeconnect', '/activity/adobeconnect');
-        $paths[] = new restore_path_element('adobeconnect_meeting_group', '/activity/adobeconnect/meeting_groups/meeting_group');
+        if ($userinfo) {
+            $paths[] = new restore_path_element('adobeconnect', '/activity/adobeconnect');
+            $paths[] = new restore_path_element('adobeconnect_meeting_group', '/activity/adobeconnect/meeting_groups/meeting_group');
+        }
 //        if ($userinfo) {
 //            $paths[] = new restore_path_element('survey_answer', '/activity/survey/answers/answer');
 //            $paths[] = new restore_path_element('survey_analys', '/activity/survey/analysis/analys');
