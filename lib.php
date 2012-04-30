@@ -458,8 +458,11 @@ function adobeconnect_delete_instance($id) {
                 $event = calendar_event::load($eventid);
                 $event->delete();
             }
-
-            aconnect_remove_meeting($aconnect, $meeting->meetingscoid);
+            //only delete from server if no other pointers to this meeting
+            $numpointers = $DB->count_records('adobeconnect_meeting_groups', array('meetingscoid' => $meeting->meetingscoid));
+            if ($numpointers == 1) {
+                aconnect_remove_meeting($aconnect, $meeting->meetingscoid);
+            } 
         }
 
         aconnect_logout($aconnect);
