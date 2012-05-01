@@ -166,3 +166,5 @@ $string['errorrecording'] = 'Unable to find recording session';
 $string['meetinfo'] = 'More Meeting Detail';
 $string['meetinfotxt'] = 'See server meeting details';
 $string['invalidgroupmode'] = 'Your course (or selected grouping) has no groups. Please configure groups or select \'No groups\'.';
+$string['shortengroupnames'] = 'Course group names are too long (longest is {$a->max} characters). Total length of Meeting title (which will have group name appended) cannot exceed {$a->maxallowed} characters.';
+$string['invalidnamelength'] = 'Meeting title cannot exceed {$a} characters due to the length of group names in use.';

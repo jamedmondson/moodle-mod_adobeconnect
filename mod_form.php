@@ -24,7 +24,7 @@ class mod_adobeconnect_mod_form extends moodleform_mod {
     /// Adding the "general" fieldset, where all the common settings are showed
         $mform->addElement('header', 'general', get_string('general', 'form'));
 
-    /// Adding the standard "name" field
+    /// Adding the standard "name" field - limit of 60 chars on Adobe Connect server
         $mform->addElement('text', 'name', get_string('adobeconnectname', 'adobeconnect'), array('size'=>'64'));
         if (!empty($CFG->formatstringstriptags)) {
             $mform->setType('name', PARAM_TEXT);
@@ -32,7 +32,7 @@ class mod_adobeconnect_mod_form extends moodleform_mod {
             $mform->setType('name', PARAM_CLEANHTML);
         }
         $mform->addRule('name', null, 'required', null, 'client');
-        $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
+        $mform->addRule('name', get_string('maximumchars', '', 60), 'maxlength', 60, 'client');
 
     /// Adding the required "intro" field to hold the description of the instance
         $this->add_intro_editor(false, get_string('adobeconnectintro', 'adobeconnect'));
@@ -197,12 +197,25 @@ class mod_adobeconnect_mod_form extends moodleform_mod {
                 return $errors;
             }
 
-             // Check that the course has groups if group mode is on
+
             if (0 != $data['groupmode']) { // Allow for multiple groups
+                // Check that the course has groups if group mode is on
                 // get all groups for the course
                 $crsgroups = groups_get_all_groups($COURSE->id, 0, $data['groupingid']);
                 if (empty($crsgroups)) {
                     $errors['groupmode'] = get_string('invalidgroupmode', 'adobeconnect');
+                }
+                // Check that meeting title is not too long in group mode (need to take into account group name length)
+                $crsgroupsmaxnamelength = $crsgroups;
+                array_walk($crsgroupsmaxnamelength, create_function('&$val', '$val = strlen($val->name);'));
+                //maximum course name is (meetingname - (1 + maxgroupnamelength))
+                $maxnamelength = 60 - 1 - max($crsgroupsmaxnamelength);
+                if (strlen($data['name']) > $maxnamelength) {
+                    if ($maxnamelength < 1) {
+                        $errors['name'] = get_string('shortengroupnames', 'adobeconnect', array('max'=>max($crsgroupsmaxnamelength), 'maxallowed'=>60));
+                    } else {
+                        $errors['name'] = get_string('invalidnamelength', 'adobeconnect', $maxnamelength);
+                    }
                 }
             }
 
