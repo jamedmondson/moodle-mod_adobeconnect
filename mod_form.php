@@ -204,17 +204,18 @@ class mod_adobeconnect_mod_form extends moodleform_mod {
                 $crsgroups = groups_get_all_groups($COURSE->id, 0, $data['groupingid']);
                 if (empty($crsgroups)) {
                     $errors['groupmode'] = get_string('invalidgroupmode', 'adobeconnect');
-                }
-                // Check that meeting title is not too long in group mode (need to take into account group name length)
-                $crsgroupsmaxnamelength = $crsgroups;
-                array_walk($crsgroupsmaxnamelength, create_function('&$val', '$val = strlen($val->name);'));
-                //maximum course name is (meetingname - (1 + maxgroupnamelength))
-                $maxnamelength = 60 - 1 - max($crsgroupsmaxnamelength);
-                if (strlen($data['name']) > $maxnamelength) {
-                    if ($maxnamelength < 1) {
-                        $errors['name'] = get_string('shortengroupnames', 'adobeconnect', array('max'=>max($crsgroupsmaxnamelength), 'maxallowed'=>60));
-                    } else {
-                        $errors['name'] = get_string('invalidnamelength', 'adobeconnect', $maxnamelength);
+                } else {
+                    // Check that meeting title is not too long in group mode (need to take into account group name length)
+                    $crsgroupsmaxnamelength = $crsgroups;
+                    array_walk($crsgroupsmaxnamelength, create_function('&$val', '$val = strlen($val->name);'));
+                    //maximum course name is (meetingname - (1 + maxgroupnamelength))
+                    $maxnamelength = 60 - 1 - max($crsgroupsmaxnamelength);
+                    if (strlen($data['name']) > $maxnamelength) {
+                        if ($maxnamelength < 1) {
+                            $errors['name'] = get_string('shortengroupnames', 'adobeconnect', array('max'=>max($crsgroupsmaxnamelength), 'maxallowed'=>60));
+                        } else {
+                            $errors['name'] = get_string('invalidnamelength', 'adobeconnect', $maxnamelength);
+                        }
                     }
                 }
             }
