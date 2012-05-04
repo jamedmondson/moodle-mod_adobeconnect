@@ -180,6 +180,29 @@ class mod_adobeconnect_mod_form extends moodleform_mod {
             $errors['meeturl'] = get_string('invalidurl', 'adobeconnect');
         }
 
+        //Check constraints specific to group mode
+        if (0 != $data['groupmode']) {
+            // get all groups for the course
+            $crsgroups = groups_get_all_groups($COURSE->id, 0, $data['groupingid']);
+            if (empty($crsgroups)) {
+                // Check that the course has groups if group mode is on
+                $errors['groupmode'] = get_string('invalidgroupmode', 'adobeconnect');
+            } else {
+                // Check that meeting title is not too long in group mode (need to take into account group name length)
+                $crsgroupsmaxnamelength = $crsgroups;
+                array_walk($crsgroupsmaxnamelength, create_function('&$val', '$val = strlen($val->name);'));
+                //maximum course name is (meetingname - (1 + maxgroupnamelength))
+                $maxnamelength = 60 - 1 - max($crsgroupsmaxnamelength);
+                if (strlen($data['name']) > $maxnamelength) {
+                    if ($maxnamelength < 1) {
+                        $errors['name'] = get_string('shortengroupnames', 'adobeconnect', array('max'=>max($crsgroupsmaxnamelength), 'maxallowed'=>60));
+                    } else {
+                        $errors['name'] = get_string('invalidnamelength', 'adobeconnect', $maxnamelength);
+                    }
+                }
+            }
+        }
+
         // Adding activity
         if (empty($data['update'])) {
 
@@ -195,29 +218,6 @@ class mod_adobeconnect_mod_form extends moodleform_mod {
             if ($DB->record_exists('adobeconnect', $params)) {
                 $errors['name'] = get_string('duplicatemeetingname', 'adobeconnect');
                 return $errors;
-            }
-
-
-            if (0 != $data['groupmode']) { // Allow for multiple groups
-                // Check that the course has groups if group mode is on
-                // get all groups for the course
-                $crsgroups = groups_get_all_groups($COURSE->id, 0, $data['groupingid']);
-                if (empty($crsgroups)) {
-                    $errors['groupmode'] = get_string('invalidgroupmode', 'adobeconnect');
-                } else {
-                    // Check that meeting title is not too long in group mode (need to take into account group name length)
-                    $crsgroupsmaxnamelength = $crsgroups;
-                    array_walk($crsgroupsmaxnamelength, create_function('&$val', '$val = strlen($val->name);'));
-                    //maximum course name is (meetingname - (1 + maxgroupnamelength))
-                    $maxnamelength = 60 - 1 - max($crsgroupsmaxnamelength);
-                    if (strlen($data['name']) > $maxnamelength) {
-                        if ($maxnamelength < 1) {
-                            $errors['name'] = get_string('shortengroupnames', 'adobeconnect', array('max'=>max($crsgroupsmaxnamelength), 'maxallowed'=>60));
-                        } else {
-                            $errors['name'] = get_string('invalidnamelength', 'adobeconnect', $maxnamelength);
-                        }
-                    }
-                }
             }
 
             // Check Adobe connect server for duplicated names
