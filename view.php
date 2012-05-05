@@ -253,28 +253,10 @@ if ($cm->groupmode) {
         // Retrieve the currently active group for the user's session
         $groupid = groups_get_activity_group($cm);
 
-        /* Depending on the series of events groups_get_activity_group will 
-         * return a groupid value of  0 even if the user belongs to a group.
-         * If the groupid is set to 0 then use the first group that the user
-         * belongs to.
-         */
-        $aag = has_capability('moodle/site:accessallgroups', $context);
-        
-        if (0 == $groupid) {
-            $groups = groups_get_user_groups($cm->course, $USER->id);
-            $groups = current($groups);
-
-            if (!empty($groups)) {
-
-                $groupid = key($SESSION->activegroup[$cm->course]);
-            } elseif ($aag) {
-                /* If the user does not explicitely belong to any group
-                 * check their capabilities to see if they have access
-                 * to manage all groups; and if so display the first course
-                 * group by default
-                 */
-                $groupid = key($user_groups);
-            }
+        // A return value of 0 means 'all groups'
+        // Since we have disabled the 'All participants' option in the menu, select first allowed group (this will match first entry in the menu drop-down)
+        if (!$groupid) {
+            $groupid = key($user_groups);
         }
     }
 }
@@ -286,13 +268,19 @@ $aconnect = aconnect_login();
 $cond = array('instanceid' => $adobeconnect->id, 'groupid' => $groupid);
 $scoid = $DB->get_field('adobeconnect_meeting_groups', 'meetingscoid', $cond);
 
+if (!$scoid) {
+    //A course group was added after the activity was initially created'
+    $message = get_string('nomeeting', 'adobeconnect') .' ('.$adobeconnect->name.'_'.$user_groups[$groupid]->name.')';
+    echo $OUTPUT->box_start('generalbox').$OUTPUT->notification($message).$OUTPUT->box_end('generalbox').$OUTPUT->footer();
+    exit();
+}
 $meetfldscoid = aconnect_get_folder($aconnect, 'meetings');
 
 
 $filter = array('filter-sco-id' => $scoid);
 
-if (($meeting = aconnect_meeting_exists($aconnect, $meetfldscoid, $filter))) {
-    $meeting = current($meeting);
+if (($meetings = aconnect_meeting_exists($aconnect, $meetfldscoid, $filter)) && $meetings[$scoid]) {
+    $meeting = $meetings[$scoid];
 } else {
 
     /* First check if the module instance has a user associated with it
@@ -300,21 +288,19 @@ if (($meeting = aconnect_meeting_exists($aconnect, $meetfldscoid, $filter))) {
     if (!empty($adobeconnect->userid)) {
         $username     = get_connect_username($adobeconnect->userid);
         $meetfldscoid = aconnect_get_user_folder_sco_id($aconnect, $username);
-        $meeting      = aconnect_meeting_exists($aconnect, $meetfldscoid, $filter);
+        $meetings     = aconnect_meeting_exists($aconnect, $meetfldscoid, $filter);
         
-        if (!empty($meeting)) {
-            $meeting = current($meeting);
+        if (!empty($meetings) && $meetings[$scoid]) {
+            $meeting = $meetings[$scoid];
         }
     }
-    
-    // If meeting does not exist then display an error message
-    if (empty($meeting)) {
+}
 
-        $message = get_string('nomeeting', 'adobeconnect');
-        echo $OUTPUT->notification($message);
-        aconnect_logout($aconnect);
-        die();
-    }
+// If meeting does not exist then display an error message
+if (empty($meeting)) {
+    // The meeting has been deleted off the AC server since ctivity creation
+    echo $OUTPUT->box_start('generalbox').$OUTPUT->notification($message).$OUTPUT->box_end('generalbox').$OUTPUT->footer();
+    exit();
 }
 
 aconnect_logout($aconnect);
