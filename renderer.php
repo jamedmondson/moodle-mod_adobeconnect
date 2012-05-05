@@ -287,9 +287,4 @@ class mod_adobeconnect_renderer extends plugin_renderer_base {
         return $html;
         //$html .= html_writer::link($url, get_string('removemychoice','choice'));
     }
-    
-    function display_no_groups_message() {
-        $html = html_writer::tag('p', get_string('usergrouprequired', 'adobeconnect'));
-        return $html;
-    }
 }

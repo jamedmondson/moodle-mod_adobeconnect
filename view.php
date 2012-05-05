@@ -276,6 +276,9 @@ if ($cm->groupmode) {
                 $groupid = key($user_groups);
             }
         }
+    } else {
+        //Meeting is in group mode, but the user is not a member of any groups
+        notice(get_string('usergrouprequired', 'adobeconnect'), "$CFG->wwwroot/course/view.php?id=$course->id");
     }
 }
 
@@ -384,19 +387,7 @@ $meetingdetail->introformat = $adobeconnect->introformat;
 
 echo $OUTPUT->box_start('generalbox', 'meetingsummary');
 
-// If groups mode is enabled for the activity and the user belongs to a group
-if (NOGROUPS != $cm->groupmode && 0 != $groupid) {
-
-    echo $renderer->display_meeting_detail($meetingdetail, $id, $groupid);
-} elseif (NOGROUPS == $cm->groupmode) { 
-
-    // If groups mode is disabled
-    echo $renderer->display_meeting_detail($meetingdetail, $id, $groupid);
-} else {
-
-    // If groups mode is enabled but the user is not in a group
-    echo $renderer->display_no_groups_message();
-}
+echo $renderer->display_meeting_detail($meetingdetail, $id, $groupid);
 
 echo $OUTPUT->box_end();
 
