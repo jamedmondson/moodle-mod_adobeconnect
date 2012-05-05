@@ -133,14 +133,6 @@ function adobeconnect_add_instance($adobeconnect) {
         // Create the meeting for each group
         foreach($crsgroups as $crsgroup) {
 
-            // The teacher role if they don't already have one and
-            // Assign them to each group
-            if (!groups_is_member($crsgroup->id, $USER->id)) {
-
-                groups_add_member($crsgroup->id, $USER->id);
-
-            }
-
             $meeting->name = $adobeconnect->name . '_' . $crsgroup->name;
 
             if (!empty($adobeconnect->meeturl)) {
@@ -150,7 +142,6 @@ function adobeconnect_add_instance($adobeconnect) {
             // If creating the meeting failed, then return false and revert the group role assignments
             if (!$meetingscoid = aconnect_create_meeting($aconnect, $meeting, $meetfldscoid)) {
                 
-                groups_remove_member($crsgroup->id, $USER->id);
                 debugging('There was an error creating the meeting "'.$meeting->name.'" on the Adobe Connect Server.', DEBUG_DEVELOPER);
                 //delete all local records for this meeting (or meetings if in group mode)
                 $result = $DB->delete_records('adobeconnect', array('id'=>$recid));
