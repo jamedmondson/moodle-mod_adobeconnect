@@ -234,6 +234,13 @@ $adobesession = $aconnect->get_cookie();
 // The batch of code below handles the display of Moodle groups
 if ($cm->groupmode) {
 
+    //check user's actual group membership ()
+    $user_group_membership = groups_get_all_groups($cm->course, $USER->id, $cm->groupingid);
+    if (empty($user_group_membership) && !has_capability('moodle/site:accessallgroups', $context)) {
+        //Meeting is in group mode, but the user is not a member of any groups
+        notice(get_string('usergrouprequired', 'adobeconnect'), "$CFG->wwwroot/course/view.php?id=$course->id");
+    }
+
     $querystring = array('id' => $cm->id);
     $url = new moodle_url('/mod/adobeconnect/view.php', $querystring);
 
@@ -272,9 +279,6 @@ if ($cm->groupmode) {
                 $groupid = key($user_groups);
             }
         }
-    } else {
-        //Meeting is in group mode, but the user is not a member of any groups
-        notice(get_string('usergrouprequired', 'adobeconnect'), "$CFG->wwwroot/course/view.php?id=$course->id");
     }
 }
 
@@ -370,7 +374,6 @@ if (has_capability('mod/adobeconnect:meetingpresenter', $context, $usrobj->id) o
 
 // Determine whether the user should see the 'join meeting' button
 if (NOGROUPS != $cm->groupmode) {
-    $user_group_membership = groups_get_all_groups($cm->course, $USER->id, $cm->groupingid);
     if (has_capability('moodle/site:accessallgroups', $context) || isset($user_group_membership[$groupid])) {
         $meetingdetail->joinmeetingbutton = true;
     } else {
