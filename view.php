@@ -196,25 +196,21 @@ if (!empty($meetscoids)) {
     }
 
     // Check the user's capability and assign them view permissions to the recordings folder
-    // if it's a public meeting give them permissions regardless
-    if ($cm->groupmode) {
-
-
-        if (has_capability('mod/adobeconnect:meetingpresenter', $context, $usrobj->id) or
-            has_capability('mod/adobeconnect:meetingparticipant', $context, $usrobj->id)) {
-            if (aconnect_assign_user_perm($aconnect, $usrprincipal, $fldid, ADOBE_VIEW_ROLE)) {
-                //DEBUG
-                // echo 'true';
-            } else {
-                //DEBUG
-                debugging("error assign user recording folder permissions", DEBUG_DEVELOPER);
-//                print_object('error assign user recording folder permissions');
-//                print_object($aconnect->_xmlrequest);
-//                print_object($aconnect->_xmlresponse);
-            }
+    // Note: public meeting != public recording. In AC8, all recordings are private by default
+    
+    if (has_capability('mod/adobeconnect:meetinghost', $context, $usrobj->id) or
+        has_capability('mod/adobeconnect:meetingpresenter', $context, $usrobj->id) or
+        has_capability('mod/adobeconnect:meetingparticipant', $context, $usrobj->id)) {
+        if (aconnect_assign_user_perm($aconnect, $usrprincipal, $fldid, ADOBE_VIEW_ROLE)) {
+            //DEBUG
+            // echo 'true';
+        } else {
+            //DEBUG
+            debugging("error assign user recording folder permissions", DEBUG_DEVELOPER);
+//          print_object('error assign user recording folder permissions');
+//          print_object($aconnect->_xmlrequest);
+//          print_object($aconnect->_xmlresponse);
         }
-    } else {
-        aconnect_assign_user_perm($aconnect, $usrprincipal, $fldid, ADOBE_VIEW_ROLE);
     }
 
     aconnect_logout($aconnect);
@@ -372,6 +368,18 @@ if (has_capability('mod/adobeconnect:meetingpresenter', $context, $usrobj->id) o
     $meetingdetail->participants = true;
 }
 
+// Determine whether the user should see the 'join meeting' button
+if (NOGROUPS != $cm->groupmode) {
+    $user_group_membership = groups_get_all_groups($cm->course, $USER->id, $cm->groupingid);
+    if (has_capability('moodle/site:accessallgroups', $context) || isset($user_group_membership[$groupid])) {
+        $meetingdetail->joinmeetingbutton = true;
+    } else {
+        $meetingdetail->joinmeetingbutton = false;
+    }
+} else {
+    $meetingdetail->joinmeetingbutton = true;
+}
+
 //  CONTRIB-2929 - remove date format and let Moodle decide the format
 // Get the meeting start time
 $time = userdate($adobeconnect->starttime);
@@ -394,28 +402,22 @@ echo $OUTPUT->box_end();
 echo '<br />';
 
 $showrecordings = false;
-// Check if meeting is private, if so check the user's capability.  If public show recorded meetings
-if (!$adobeconnect->meetingpublic) {
-
-    // Check capabilities
-    if (has_capability('mod/adobeconnect:meetinghost', $context, $usrobj->id) or
-        has_capability('mod/adobeconnect:meetingpresenter', $context, $usrobj->id) or
-        has_capability('mod/adobeconnect:meetingparticipant', $context, $usrobj->id)) {
-        $showrecordings = true;
-    }
-} else {
-    
-    // Check group mode and group membership
+// Note: public meeting != public recording. In AC8, all recordings are private by default
+// Check the user's capability to see recordings
+if (has_capability('mod/adobeconnect:meetinghost', $context, $usrobj->id) or
+    has_capability('mod/adobeconnect:meetingpresenter', $context, $usrobj->id) or
+    has_capability('mod/adobeconnect:meetingparticipant', $context, $usrobj->id)) {
     $showrecordings = true;
 }
 
-// Lastly check group mode and group membership
-if (NOGROUPS != $cm->groupmode && 0 != $groupid) {
+
+// Lastly check group mode and group membership - only show recordings for groups the user is a member of
+if (NOGROUPS != $cm->groupmode && 0 != $groupid && $meetingdetail->joinmeetingbutton) {
     $showrecordings = $showrecordings && true;
 } elseif (NOGROUPS == $cm->groupmode) {
-    $showrecording = $showrecordings && true;
+    $showrecordings = $showrecordings && true;
 } else {
-    $showrecording = $showrecordings && false;
+    $showrecordings = $showrecordings && false;
 }
 
 $recordings = $recording;
