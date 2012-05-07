@@ -87,10 +87,10 @@ if (!empty($data) && array_key_exists($recscoid, $data)) {
     }
 }
 
-aconnect_logout($aconnect);
 
 if (empty($recording) and confirm_sesskey()) {
     notify(get_string('errormeeting', 'adobeconnect'));
+    aconnect_logout($aconnect);
     die();
 }
 
@@ -113,7 +113,23 @@ if (NOGROUPS != $cm->groupmode) {
 
 if (!$usrcanjoin) {
     notice(get_string('usergrouprequired', 'adobeconnect'), $url);
+} else {
+    //If a recording is private, it won't allow access to those who aren't participants
+    // i.e. haven't previously joined the meeting.
+    // In that case, create user if necessary and assign lowest required permission to see recording
+    if (!($usrprincipal = aconnect_user_exists($aconnect, $usrobj))) {
+        if (!($usrprincipal = aconnect_create_user($aconnect, $usrobj))) {
+            debugging("error creating user", DEBUG_DEVELOPER);
+        }
+    }
+    if (!aconnect_check_user_perm($aconnect, $usrprincipal, $meetscoid->meetingscoid, ADOBE_HOST) && !aconnect_check_user_perm($aconnect, $usrprincipal, $meetscoid->meetingscoid, ADOBE_PRESENTER)) {
+        if (!aconnect_check_user_perm($aconnect, $usrprincipal, $meetscoid->meetingscoid, ADOBE_PARTICIPANT, true)) {
+          debugging('Error assigning user adobe participant role', DEBUG_DEVELOPER);
+        }
+    }
 }
+
+aconnect_logout($aconnect);
 
 add_to_log($course->id, 'adobeconnect', 'view',
            "view.php?id=$cm->id", "View recording {$adobeconnect->name} details", $cm->id);

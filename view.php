@@ -196,25 +196,21 @@ if (!empty($meetscoids)) {
     }
 
     // Check the user's capability and assign them view permissions to the recordings folder
-    // if it's a public meeting give them permissions regardless
-    if ($cm->groupmode) {
-
-
-        if (has_capability('mod/adobeconnect:meetingpresenter', $context, $usrobj->id) or
-            has_capability('mod/adobeconnect:meetingparticipant', $context, $usrobj->id)) {
-            if (aconnect_assign_user_perm($aconnect, $usrprincipal, $fldid, ADOBE_VIEW_ROLE)) {
-                //DEBUG
-                // echo 'true';
-            } else {
-                //DEBUG
-                debugging("error assign user recording folder permissions", DEBUG_DEVELOPER);
-//                print_object('error assign user recording folder permissions');
-//                print_object($aconnect->_xmlrequest);
-//                print_object($aconnect->_xmlresponse);
-            }
+    // Note: public meeting != public recording. In AC8, all recordings are private by default
+    
+    if (has_capability('mod/adobeconnect:meetinghost', $context, $usrobj->id) or
+        has_capability('mod/adobeconnect:meetingpresenter', $context, $usrobj->id) or
+        has_capability('mod/adobeconnect:meetingparticipant', $context, $usrobj->id)) {
+        if (aconnect_assign_user_perm($aconnect, $usrprincipal, $fldid, ADOBE_VIEW_ROLE)) {
+            //DEBUG
+            // echo 'true';
+        } else {
+            //DEBUG
+            debugging("error assign user recording folder permissions", DEBUG_DEVELOPER);
+//          print_object('error assign user recording folder permissions');
+//          print_object($aconnect->_xmlrequest);
+//          print_object($aconnect->_xmlresponse);
         }
-    } else {
-        aconnect_assign_user_perm($aconnect, $usrprincipal, $fldid, ADOBE_VIEW_ROLE);
     }
 
     aconnect_logout($aconnect);
@@ -237,6 +233,13 @@ $adobesession = $aconnect->get_cookie();
 
 // The batch of code below handles the display of Moodle groups
 if ($cm->groupmode) {
+
+    //check user's actual group membership ()
+    $user_group_membership = groups_get_all_groups($cm->course, $USER->id, $cm->groupingid);
+    if (empty($user_group_membership) && !has_capability('moodle/site:accessallgroups', $context)) {
+        //Meeting is in group mode, but the user is not a member of any groups
+        notice(get_string('usergrouprequired', 'adobeconnect'), "$CFG->wwwroot/course/view.php?id=$course->id");
+    }
 
     $querystring = array('id' => $cm->id);
     $url = new moodle_url('/mod/adobeconnect/view.php', $querystring);
@@ -355,6 +358,17 @@ if (has_capability('mod/adobeconnect:meetingpresenter', $context, $usrobj->id) o
     $meetingdetail->participants = true;
 }
 
+// Determine whether the user should see the 'join meeting' button
+if (NOGROUPS != $cm->groupmode) {
+    if (has_capability('moodle/site:accessallgroups', $context) || isset($user_group_membership[$groupid])) {
+        $meetingdetail->joinmeetingbutton = true;
+    } else {
+        $meetingdetail->joinmeetingbutton = false;
+    }
+} else {
+    $meetingdetail->joinmeetingbutton = true;
+}
+
 //  CONTRIB-2929 - remove date format and let Moodle decide the format
 // Get the meeting start time
 $time = userdate($adobeconnect->starttime);
@@ -370,46 +384,29 @@ $meetingdetail->introformat = $adobeconnect->introformat;
 
 echo $OUTPUT->box_start('generalbox', 'meetingsummary');
 
-// If groups mode is enabled for the activity and the user belongs to a group
-if (NOGROUPS != $cm->groupmode && 0 != $groupid) {
-
-    echo $renderer->display_meeting_detail($meetingdetail, $id, $groupid);
-} elseif (NOGROUPS == $cm->groupmode) { 
-
-    // If groups mode is disabled
-    echo $renderer->display_meeting_detail($meetingdetail, $id, $groupid);
-} else {
-
-    // If groups mode is enabled but the user is not in a group
-    echo $renderer->display_no_groups_message();
-}
+echo $renderer->display_meeting_detail($meetingdetail, $id, $groupid);
 
 echo $OUTPUT->box_end();
 
 echo '<br />';
 
 $showrecordings = false;
-// Check if meeting is private, if so check the user's capability.  If public show recorded meetings
-if (!$adobeconnect->meetingpublic) {
-
-    // Check capabilities
-    if (has_capability('mod/adobeconnect:meetingpresenter', $context, $usrobj->id) or
-        has_capability('mod/adobeconnect:meetingparticipant', $context, $usrobj->id)) {
-        $showrecordings = true;
-    }
-} else {
-    
-    // Check group mode and group membership
+// Note: public meeting != public recording. In AC8, all recordings are private by default
+// Check the user's capability to see recordings
+if (has_capability('mod/adobeconnect:meetinghost', $context, $usrobj->id) or
+    has_capability('mod/adobeconnect:meetingpresenter', $context, $usrobj->id) or
+    has_capability('mod/adobeconnect:meetingparticipant', $context, $usrobj->id)) {
     $showrecordings = true;
 }
 
-// Lastly check group mode and group membership
-if (NOGROUPS != $cm->groupmode && 0 != $groupid) {
+
+// Lastly check group mode and group membership - only show recordings for groups the user is a member of
+if (NOGROUPS != $cm->groupmode && 0 != $groupid && $meetingdetail->joinmeetingbutton) {
     $showrecordings = $showrecordings && true;
 } elseif (NOGROUPS == $cm->groupmode) {
-    $showrecording = $showrecordings && true;
+    $showrecordings = $showrecordings && true;
 } else {
-    $showrecording = $showrecordings && false;
+    $showrecordings = $showrecordings && false;
 }
 
 $recordings = $recording;
