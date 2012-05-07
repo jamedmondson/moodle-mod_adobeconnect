@@ -95,6 +95,7 @@ class mod_adobeconnect_mod_form extends moodleform_mod {
 
         // Disabled the group mode if the meeting has already been created
         $mform->disabledIf('groupmode', 'tempenable', 'eq', 0);
+        $mform->disabledIf('groupingid', 'tempenable', 'eq', 0);
 //-------------------------------------------------------------------------------
         // add standard buttons, common to all modules
         $this->add_action_buttons();
