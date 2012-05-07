@@ -223,14 +223,14 @@ class mod_adobeconnect_mod_form extends moodleform_mod {
 
             // Check Adobe connect server for duplicated names
             foreach($namematches as $matchkey => $match) {
-                if (0 == substr_compare($match->name, $data['name'] . '_', 0, strlen($data['name'] . '_'), false)) {
+                if (0 == substr_compare($match->name, $data['name'] . '_', 0, strlen($data['name'] . '_'), true)) {
                     $errors['name'] = get_string('duplicatemeetingname', 'adobeconnect');
                 }
             }
 
             foreach($urlmatches as $matchkey => $match) {
                 $matchurl = rtrim($match->url, '/');
-                if (0 == substr_compare($matchurl, $url . '_', 0, strlen($url . '_'), false)) {
+                if (0 == substr_compare($matchurl, $url . '_', 0, strlen($url . '_'), true)) {
                     $errors['meeturl'] = get_string('duplicateurl', 'adobeconnect');
                 }
             }
@@ -250,7 +250,7 @@ class mod_adobeconnect_mod_form extends moodleform_mod {
 
             foreach($namematches as $matchkey => $match) {
                 if (!array_key_exists($match->scoid, $grpmeetings)) {
-                    if (0 == substr_compare($match->name, $data['name'] . '_', 0, strlen($data['name'] . '_'), false)) {
+                    if (0 == substr_compare($match->name, $data['name'] . '_', 0, strlen($data['name'] . '_'), true)) {
                         $errors['name'] = get_string('duplicatemeetingname', 'adobeconnect');
                     }
                 }
@@ -258,7 +258,7 @@ class mod_adobeconnect_mod_form extends moodleform_mod {
 
             foreach($urlmatches as $matchkey => $match) {
                 if (!array_key_exists($match->scoid, $grpmeetings)) {
-                    if (0 == substr_compare($match->url, $url . '_', 0, strlen($url . '_'), false)) {
+                    if (0 == substr_compare($match->url, $url . '_', 0, strlen($url . '_'), true)) {
                         $errors['meeturl'] = get_string('duplicateurl', 'adobeconnect');
                     }
                 }
