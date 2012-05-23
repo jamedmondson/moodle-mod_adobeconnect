@@ -78,7 +78,17 @@ class restore_adobeconnect_activity_structure_step extends restore_activity_stru
     }
 
     protected function after_execute() {
+        global $DB;
         // Add survey related files, no need to match by itemname (just internally handled context)
         $this->add_related_files('mod_adobeconnect', 'intro', null);
+        // If no userdata supplied, there will be no record of AC activity
+        //  in adobeconnect and adoceconnect_meeting_groups tables
+        //  because no $paths defined in define_structure()
+        // However still need to 'clean up' Moodle's record of the activity in course_modules table
+        //  which will have an instanceid of 0 (added check for this although shouldn't be necessary)
+        $userinfo = $this->get_setting_value('userinfo');
+        if (!$userinfo) {
+           $DB->delete_records('course_modules', array('id'=>$this->task->get_moduleid(), 'instance'=>0));
+        }
     }
 }
