@@ -1,5 +1,4 @@
 <?php
-
 $string['actinbtngrp'] = '';
 $string['addparticipant'] = 'Add';
 $string['addpresenter']  = 'Add';
@@ -99,6 +98,7 @@ $string['noinstances'] = 'There are no instances of adobeconnect';
 $string['error1'] = 'You must be a site administrator to access this page';
 $string['error2'] = 'The property \'{$a}\' is empty, please input a value and save the settings';
 $string['errormeeting'] = 'Error retrieving recording';
+$string['errorduplicate'] = 'Adobe Connect activities cannot be duplicated. Please create a new activity instead.';
 $string['settingblurb'] = '<center><img src="{$a->image}" /></center><br />
     <p>Adobe Systems Inc. and Remote-Learner.net have partnered together to create the first publicly available
     and officially sponsored, integration method between Moodle and Adobe Acrobat Connect Pro. This new

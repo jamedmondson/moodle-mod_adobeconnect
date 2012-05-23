@@ -24,6 +24,33 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+// Do not allow Adobe Connect activities to be 'duplicated' at all
+//  For course backup/restore this is handled by restore_adobeconnect_activity_structure_step()
+//  But modduplicate.php throws an error if it cannot find the id of the new resource.
+if (basename($_SERVER['SCRIPT_NAME']) == 'modduplicate.php') {
+    $courseid   = required_param('course',  PARAM_INT);
+    $course     = $DB->get_record('course', array('id' => $courseid), '*', MUST_EXIST);
+    $cmid       = required_param('cmid',    PARAM_INT);
+    $cm         = get_coursemodule_from_id('', $cmid, $course->id, true, MUST_EXIST);
+   
+    require_login($course);
+    require_sesskey();
+
+    $PAGE->set_title(get_string('duplicate'));
+    $PAGE->set_heading($course->fullname);
+    $PAGE->set_url(new moodle_url('/course/modduplicate.php', array('cmid' => $cm->id, 'courseid' => $course->id)));
+    $PAGE->set_pagelayout('incourse');
+
+    $output = $PAGE->get_renderer('core', 'backup');
+    echo $output->header();
+    echo $output->box_start();
+    echo $output->notification(get_string('errorduplicate', 'adobeconnect'));
+    echo $output->continue_button(new moodle_url('/course/view.php', array('id' => $course->id)));
+    echo $output->box_end();
+    echo $output->footer();
+    die();
+}
+
 require_once($CFG->dirroot . '/mod/adobeconnect/backup/moodle2/restore_adobeconnect_stepslib.php'); // Because it exists (must)
 
 /**
