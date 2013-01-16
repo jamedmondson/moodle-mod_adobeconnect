@@ -621,7 +621,11 @@ function aconnect_get_recordings($aconnect, $folderscoid, $sourcescoid) {
                                 $meetingdetail = $innernodelist->item($x);
 
                                 // Check if the SCO item is a recording or uploaded document.  We only want to display recordings
-                                if (!is_null($meetingdetail->getElementsByTagName('duration')->item(0))) {
+                                //In AC9, the recording length info is stored as an attributed of 'sco'
+                                $recordingvac9 = $innernodelist->item($x)->attributes->getNamedItem('duration');
+                                //In AC-8 and before, the recording length info is stored as its own element
+                                $recordingvac8 = $meetingdetail->getElementsByTagName('duration')->item(0);
+                                if (!is_null($recordingvac9) || !is_null($recordingvac8)) {
 
                                     $j = (int) $domnode->nodeValue;
                                     $value = (!is_null($meetingdetail->getElementsByTagName('name'))) ?
@@ -654,8 +658,8 @@ function aconnect_get_recordings($aconnect, $folderscoid, $sourcescoid) {
 
                                     $recordings[$j]->modified = (string) $value;
 
-                                    $value = (!is_null($meetingdetail->getElementsByTagName('duration'))) ?
-                                             $meetingdetail->getElementsByTagName('duration')->item(0)->nodeValue : '';
+                                    $value = (!is_null($recordingvac9) ?
+                                             $recordingvac9->nodeValue : $recordingvac8->nodeValue);
 
                                     $recordings[$j]->duration = (string) $value;
                                     
