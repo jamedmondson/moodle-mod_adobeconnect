@@ -625,7 +625,9 @@ function aconnect_get_recordings($aconnect, $folderscoid, $sourcescoid) {
                                 $recordingvac9 = $innernodelist->item($x)->attributes->getNamedItem('duration');
                                 //In AC-8 and before, the recording length info is stored as its own element
                                 $recordingvac8 = $meetingdetail->getElementsByTagName('duration')->item(0);
-                                if (!is_null($recordingvac9) || !is_null($recordingvac8)) {
+                                //In AC9, not only recordings have a 'recording' attribute defined, but the majority are empty.
+                                // So check the attribute has a value (possibly 0, so can't use !empty()) 
+                                if ((!is_null($recordingvac9) && $recordingvac9->value !== '') || !is_null($recordingvac8)) {
 
                                     $j = (int) $domnode->nodeValue;
                                     $value = (!is_null($meetingdetail->getElementsByTagName('name'))) ?
