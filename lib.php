@@ -433,7 +433,7 @@ function adobeconnect_update_instance($adobeconnect) {
  * @return boolean Success/Failure
  */
 function adobeconnect_delete_instance($id) {
-    global $DB;
+    global $DB, $CFG;
 
     $param = array('id' => $id);
     if (! $adobeconnect = $DB->get_record('adobeconnect', $param)) {
@@ -459,7 +459,10 @@ function adobeconnect_delete_instance($id) {
                 $event->delete();
             }
 
-            aconnect_remove_meeting($aconnect, $meeting->meetingscoid);
+            //only delete from server if this functionality has not been disabled
+            if (empty($CFG->adobeconnect_preventdelete)) {
+                aconnect_remove_meeting($aconnect, $meeting->meetingscoid);
+            }
         }
 
         aconnect_logout($aconnect);
